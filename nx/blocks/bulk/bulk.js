@@ -1,11 +1,10 @@
 import { LitElement, html, nothing } from '../../deps/lit/lit-core.min.js';
 
 import { getConfig } from '../../scripts/nexter.js';
-import makeBatches from '../../public/utils/batch.js';
 import getStyle from '../../utils/styles.js';
 import getSvg from '../../utils/svg.js';
 
-import { formatUrls, sendAction, throttle } from './index.js';
+import { cancelJob, formatUrls, getJobStatus, triggerJob } from './index.js';
 
 const { nxBase } = getConfig();
 const style = await getStyle(import.meta.url);
@@ -15,12 +14,14 @@ const ICONS = [
   `${nxBase}/img/icons/Smock_ChevronRight_18_N.svg`,
 ];
 
-const SUCCESS_CODES = [200, 201, 204];
+const SUCCESS_CODES = [200, 201, 204, 304];
 
 const MOCK_URLS = 'https://main--bacom-sandbox--adobecom.hlx.live/\nhttps://main--bacom-sandbox--adobecom.hlx.live/customer-success-stories\nhttps://main--bacom-sandbox--adobecom.hlx.live/customer-success-stories/aaa-northeast-case-study\nhttps://main--bacom-sandbox--adobecom.hlx.live/customer-success-stories/aaa-northeast-case-study-updatedcaastags\nhttps://main--bacom-sandbox--adobecom.hlx.live/customer-success-stories/abb-case-study\nhttps://main--bacom-sandbox--adobecom.hlx.live/customer-success-stories/academy-of-art-case-study\nhttps://main--bacom-sandbox--adobecom.hlx.live/customer-success-stories/accent-group-ecommerce-case-study\nhttps://main--bacom-sandbox--adobecom.hlx.live/customer-success-stories/aci-worldwide-case-study\nhttps://main--bacom-sandbox--adobecom.hlx.live/customer-success-stories/adobe-campaign-orchestration-case-study\nhttps://main--bacom-sandbox--adobecom.hlx.live/customer-success-stories/adobe-digital-legal-workflow-case-study\nhttps://main--bacom-sandbox--adobecom.hlx.live/customer-success-stories/adobe-digital-onboarding-case-study\nhttps://main--bacom-sandbox--adobecom.hlx.live/customer-success-stories/adobe-digital-university-case-study\nhttps://main--bacom-sandbox--adobecom.hlx.live/customer-success-stories/adobe-inside-adobe-case-study\nhttps://main--bacom-sandbox--adobecom.hlx.live/customer-success-stories/adobe-promo-case-study\nhttps://main--bacom-sandbox--adobecom.hlx.live/customer-success-stories/adobe-summit-2023-case-study\nhttps://main--bacom-sandbox--adobecom.hlx.live/customer-success-stories/adp-workfront-case-study\nhttps://main--bacom-sandbox--adobecom.hlx.live/customer-success-stories/aftia-case-study\nhttps://main--bacom-sandbox--adobecom.hlx.live/customer-success-stories/airbus-case-study\nhttps://main--bacom-sandbox--adobecom.hlx.live/customer-success-stories/aisg-case-study\nhttps://main--bacom-sandbox--adobecom.hlx.live/customer-success-stories/al-ghandi-case-study\nhttps://main--bacom-sandbox--adobecom.hlx.live/customer-success-stories/alma-case-study\nhttps://main--bacom-sandbox--adobecom.hlx.live/customer-success-stories/alshaya-group-case-study\nhttps://main--bacom-sandbox--adobecom.hlx.live/customer-success-stories/altisource-case-study\nhttps://main--bacom-sandbox--adobecom.hlx.live/customer-success-stories/americord-case-study\nhttps://main--bacom-sandbox--adobecom.hlx.live/customer-success-stories/analogic-case-study\nhttps://main--bacom-sandbox--adobecom.hlx.live/customer-success-stories/aon-hewitt-case-study\nhttps://main--bacom-sandbox--adobecom.hlx.live/customer-success-stories/apollo-tyres-case-study\nhttps://main--bacom-sandbox--adobecom.hlx.live/customer-success-stories/ariel-case-study\nhttps://main--bacom-sandbox--adobecom.hlx.live/customer-success-stories/armor-case-study\nhttps://main--bacom-sandbox--adobecom.hlx.live/customer-success-stories/asics-case-study\nhttps://main--bacom-sandbox--adobecom.hlx.live/customer-success-stories/asus-case-study\nhttps://main--bacom-sandbox--adobecom.hlx.live/customer-success-stories/avidxchange-case-study\nhttps://main--bacom-sandbox--adobecom.hlx.live/customer-success-stories/avionte-case-study\nhttps://main--bacom-sandbox--adobecom.hlx.live/customer-success-stories/bank-of-new-zealand-case-study\nhttps://main--bacom-sandbox--adobecom.hlx.live/customer-success-stories/barilla-case-study\nhttps://main--bacom-sandbox--adobecom.hlx.live/customer-success-stories/bbva-case-study\nhttps://main--bacom-sandbox--adobecom.hlx.live/customer-success-stories/bbva-workfront-case-study\nhttps://main--bacom-sandbox--adobecom.hlx.live/customer-success-stories/ben-and-jerrys-case-study\nhttps://main--bacom-sandbox--adobecom.hlx.live/customer-success-stories/benefytt-case-study\nhttps://main--bacom-sandbox--adobecom.hlx.live/customer-success-stories/best-buy-case-study\nhttps://main--bacom-sandbox--adobecom.hlx.live/customer-success-stories/best-western-hotels-case-study\nhttps://main--bacom-sandbox--adobecom.hlx.live/customer-success-stories/biomedica-case-study\nhttps://main--bacom-sandbox--adobecom.hlx.live/customer-success-stories/blackmores-case-study\nhttps://main--bacom-sandbox--adobecom.hlx.live/customer-success-stories/bmw-group-case-study\nhttps://main--bacom-sandbox--adobecom.hlx.live/customer-success-stories/bny-mellon-case-study\nhttps://main--bacom-sandbox--adobecom.hlx.live/customer-success-stories/boots-case-study\nhttps://main--bacom-sandbox--adobecom.hlx.live/customer-success-stories/border-states-case-study\nhttps://main--bacom-sandbox--adobecom.hlx.live/customer-success-stories/bose-case-study\nhttps://main--bacom-sandbox--adobecom.hlx.live/customer-success-stories/brand-safety-institute-case-study\nhttps://main--bacom-sandbox--adobecom.hlx.live/customer-success-stories/breville-case-study';
 
 class NxBulk extends LitElement {
   static properties = {
+    _jobStatus: { state: true },
+    _jobUrl: { state: true },
     _baseUrls: { state: true },
     _successUrls: { state: true },
     _errorUrls: { state: true },
@@ -28,6 +29,7 @@ class NxBulk extends LitElement {
     _cancel: { state: true },
     _cancelText: { state: true },
     _showVersion: { state: true },
+    _error: { attribute: false },
   };
 
   constructor() {
@@ -42,22 +44,41 @@ class NxBulk extends LitElement {
     getSvg({ parent: this.shadowRoot, paths: ICONS });
   }
 
-  processBatch(completeUrls) {
-    completeUrls.forEach((url) => {
-      const idx = this._baseUrls.findIndex(({ pathname }) => pathname === url.pathname);
-      const [spliced] = this._baseUrls.splice(idx, 1);
-      if (SUCCESS_CODES.some((code) => code === spliced.status)) {
-        this._successUrls.unshift(spliced);
-      } else {
-        this._errorUrls.unshift(spliced);
-      }
-    });
+  processJobStatus(jobStatus) {
+    if (jobStatus.progress) {
+      this._jobStatus = jobStatus.progress;
+      this._jobStatus.stopped = jobStatus.state === 'stopped';
+    }
+    if (jobStatus.cancelled) {
+      this.resetState();
+    } else if (jobStatus.data?.resources) {
+      this._successUrls = jobStatus.data.resources.filter(
+        (res) => SUCCESS_CODES.includes(res.status),
+      );
+      this._errorUrls = jobStatus.data.resources.filter(
+        (res) => res.status && !SUCCESS_CODES.includes(res.status),
+      );
+      this._baseUrls = jobStatus.data.resources.filter((res) => !res.status);
+    }
+    this.requestUpdate();
   }
 
-  async sendBatch(batch, label) {
-    const finishedBatch = await Promise.all(batch.map(async (url) => sendAction(url, label)));
-    this.processBatch(finishedBatch);
-    this.requestUpdate();
+  async pollJobStatus(job, setProgress) {
+    let jobStatus;
+    let stopped = false;
+    while (!stopped) {
+      const status = await getJobStatus(`${job.links.self}`);
+      if (status?.stopTime) {
+        jobStatus = status;
+        stopped = true;
+      }
+      if (status) setProgress(status);
+    }
+    if (stopped) {
+      jobStatus = await getJobStatus(`${jobStatus.links.details}`, true);
+      setProgress(jobStatus);
+    }
+    return jobStatus;
   }
 
   resetState() {
@@ -66,15 +87,33 @@ class NxBulk extends LitElement {
     this._baseUrls = [];
     this._successUrls = [];
     this._errorUrls = [];
+    this._error = '';
+    this._jobStatus = {
+      stopped: false,
+      total: 0,
+      processed: 0,
+      failed: 0,
+      success: 0,
+      notmodified: 0,
+    };
+    this._jobUrl = '';
+    if (this.shadowRoot) {
+      const cards = this.shadowRoot.querySelectorAll('.detail-card');
+      const lists = this.shadowRoot.querySelectorAll('.url-list');
+      [...cards, ...lists].forEach((el) => { el.classList.remove('is-expanded'); });
+    }
   }
 
   handleDeleteCheck() {
     this._isDelete = !this._isDelete;
   }
 
-  handleCancel() {
+  async handleCancel() {
     this._cancel = true;
     this._cancelText = 'Canceling';
+    if (this._jobUrl && !this._jobStatus.stopped) {
+      await cancelJob(this._jobUrl);
+    }
   }
 
   handleToggleList(e) {
@@ -100,17 +139,18 @@ class NxBulk extends LitElement {
     const { urls, action, delete: hasDelete, label } = Object.fromEntries(data);
 
     this._baseUrls = formatUrls(urls, action, hasDelete);
-    const batches = makeBatches(this._baseUrls, 10);
+    const jobResult = await triggerJob(this._baseUrls, label);
 
-    for (const batch of batches) {
-      if (this._cancel) {
-        this._cancelText = 'Cancelled';
-        break;
-      }
-      const start = Date.now();
-      await this.sendBatch(batch, label);
-      await throttle(start);
+    if (jobResult.error) {
+      this.resetState();
+      this._error = jobResult.message || 'Something went wrong.';
+      return;
     }
+
+    this._jobUrl = jobResult.links.self;
+    await this.pollJobStatus(jobResult, (status) => {
+      this.processJobStatus(status);
+    });
   }
 
   handleSelect(e) {
@@ -118,12 +158,20 @@ class NxBulk extends LitElement {
   }
 
   get _totalCount() {
-    return this._baseUrls.length + this._successUrls.length + this._errorUrls.length;
+    return this._jobStatus.total || this._baseUrls.length;
+  }
+
+  get _successCount() {
+    return this._jobStatus.success + this._jobStatus.notmodified;
+  }
+
+  get _remainingCount() {
+    return this._totalCount - this._jobStatus.processed;
   }
 
   renderBadge(name, length, hasCancel) {
     const lowerName = name.toLowerCase();
-    const hasExpand = length > 0 && lowerName !== 'total';
+    const hasExpand = this._jobStatus.stopped && length > 0 && (lowerName !== 'total' || lowerName === 'remaining');
 
     return html`
       <div class="detail-card detail-card-${lowerName}">
@@ -149,7 +197,7 @@ class NxBulk extends LitElement {
         <ul class="urls-result">
           ${urls.map((url) => html`
             <li>
-              <div class="url-path">${url.href}</div>
+              <div class="url-path">${url.path || url.webPath || url.pathname}</div>
               <div class="url-status result-${url.status ? url.status : 'waiting'}">
                 ${url.status ? url.status : 'waiting'}
               </div>
@@ -184,14 +232,15 @@ class NxBulk extends LitElement {
         </div>
       </form>
       <div class="detail-cards">
-        ${this.renderBadge('Remaining', this._baseUrls.length, this._baseUrls.length > 1)}
-        ${this.renderBadge('Errors', this._errorUrls.length)}
-        ${this.renderBadge('Success', this._successUrls.length)}
+        ${this.renderBadge('Remaining', this._remainingCount, this._remainingCount > 1 && !this._jobStatus.stopped)}
+        ${this.renderBadge('Errors', this._jobStatus.failed)}
+        ${this.renderBadge('Success', this._successCount)}
         ${this.renderBadge('Total', this._totalCount)}
       </div>
+      ${this._error ? html`<p class="error">${this._error}</p>` : nothing}
+      ${this.renderList('Remaining', this._baseUrls)}
       ${this.renderList('Errors', this._errorUrls)}
       ${this.renderList('Success', this._successUrls)}
-      ${this.renderList('Remaining', this._baseUrls)}
     `;
   }
 }
