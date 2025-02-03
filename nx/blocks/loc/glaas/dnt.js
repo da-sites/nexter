@@ -40,15 +40,12 @@ const extractPattern = (rule) => {
   return { condition, match };
 };
 
-const parseDntConfig = (config) => {
-  if (globalDntConfig) return globalDntConfig;
-
+const parseDntConfig = (config, reset = false) => {
+  if (globalDntConfig && !reset) return globalDntConfig;
   const dntConfig = new Map();
 
   // Docx Rule Set
   dntConfig.set('docRules', new Map());
-
-  // Get empty map
   const docRules = dntConfig.get('docRules');
 
   // Iterate through config doc rules
@@ -105,9 +102,11 @@ const addDntAttribute = (selector, operations, document) => {
         const matchTexts = operation.match;
         const elementText = element.textContent;
         if (
-          (operation.condition === 'equals' && matchTexts.includes(elementText)) ||
-          (operation.condition === 'beginsWith' && matchTexts.some((matchText) => elementText.startsWith(matchText))) ||
-          (operation.condition === 'has' && matchTexts.every((matchText) => element.querySelector(matchText)))
+          (operation.condition === 'except' && !matchTexts.includes(elementText))
+          || (operation.condition === 'equals' && matchTexts.includes(elementText))
+          || (operation.condition === 'contains' && matchTexts.some((matchText) => elementText.includes(matchText)))
+          || (operation.condition === 'beginsWith' && matchTexts.some((matchText) => elementText.startsWith(matchText)))
+          || (operation.condition === 'has' && matchTexts.every((matchText) => element.querySelector(matchText)))
         ) {
           setDntAttribute(dntElement);
         }
@@ -210,7 +209,7 @@ const addDntInfoToHtml = (html) => {
   const parser = new DOMParser();
   const document = parser.parseFromString(html, 'text/html');
 
-  // makeImagesRelative(document);
+  makeImagesRelative(document);
   makeHrefsRelative(document);
 
   // Match existing content sent to GLaaS
@@ -277,8 +276,18 @@ export function removeDnt(html, org, repo) {
   return document.documentElement.outerHTML;
 }
 
-export function addDnt(suppliedHtml, config) {
-  parseDntConfig(config);
-  const iconedHtml = makeIconSpans(suppliedHtml);
-  return addDntInfoToHtml(iconedHtml);
+export async function addDnt(inputText, config, { fileType = 'html', reset = false } = {}) {
+  let html;
+  const dntConfig = parseDntConfig(config, reset);
+
+  if (fileType === 'json') {
+    const json = JSON.parse(inputText);
+    const { json2html } = await import('../dnt/json2html.js');
+    html = json2html(json, dntConfig);
+  }
+
+  if (fileType === 'html') {
+    html = makeIconSpans(inputText);
+  }
+  return addDntInfoToHtml(html);
 }
