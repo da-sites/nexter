@@ -5,7 +5,7 @@ export default {
   startDate: '',
   endDate: '',
   variants: [
-    { name: 'control', split: 50, url: '' },
-    { name: 'challenger', split: 50, url: '' },
+    { split: 50, url: '' },
+    { split: 50, url: '' },
   ],
 };

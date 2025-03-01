@@ -1,15 +1,17 @@
 import { loadStyle } from '../../../scripts/nexter.js';
 import { makeDraggable, getExpDetails } from './utils.js';
 
-const EXP_SRC = 'https://main--da-live--adobe.aem.live/plugins/exp?nx=exp';
+const EXP_SRC = 'https://spread--da-live--adobe.aem.live/plugins/exp?nx=local';
 const MAIN_SELECTOR = 'aem-sidekick-exp';
 const CHANNEL = new MessageChannel();
 
 const { port1, port2 } = CHANNEL;
 
 async function init() {
-  const expDetails = getExpDetails();
-  port1.postMessage(expDetails);
+  const { origin } = window.location;
+  const experiment = getExpDetails();
+
+  port1.postMessage({ page: { origin }, experiment });
 }
 
 function handleLoad({ target }) {

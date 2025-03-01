@@ -2,7 +2,13 @@ import { getMetadata } from '../../../scripts/nexter.js';
 
 export function getExpDetails() {
   const name = getMetadata('experiment');
-  return { name };
+
+  const variants = [{ url: window.location.href }];
+
+  const challengers = getMetadata('experiment-variants')?.split(',')
+    .map((path) => ({ url: path.trim() }));
+  if (challengers?.length) variants.push(...challengers);
+  return { name, variants };
 }
 
 export function makeDraggable(el) {
