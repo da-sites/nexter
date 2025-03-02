@@ -1,4 +1,19 @@
-/* eslint-disable no-bitwise */
+import { DA_ORIGIN } from '../../../public/utils/constants.js';
+import { loadIms } from '../../../utils/ims.js';
+
+export function getDefaultData(page) {
+  return {
+    name: '', // Any
+    type: 'ab', // ab, bandit
+    goal: 'conversion', // conversion, form, engagement
+    startDate: '', // 2025-03-31
+    endDate: '', // 2025-03-31
+    variants: [
+      { percent: 50, url: page.url },
+      { percent: 50, url: '' },
+    ],
+  };
+}
 
 /**
  * Convert a string to a hex color
@@ -32,7 +47,7 @@ export function getAbb(name) {
 function getName(variant, idx) {
   if (idx === 0) return 'control';
   if (variant.url) return variant.url.split('/').pop();
-  return `variant ${idx}`;
+  return `variant-${idx}`;
 }
 
 export function processDetails(experiment) {
@@ -41,4 +56,150 @@ export function processDetails(experiment) {
     variant.name = getName(variant, idx);
   });
   return { ...experiment, variants };
+}
+
+export function getOrgSite(url) {
+  try {
+    const { hostname, pathname } = new URL(url);
+    const [repo, org] = hostname.split('.')[0].split('--').slice(1).slice(-2);
+    if (!(repo || org)) return { error: 'Please use AEM URLs' };
+    return { repo, org, path: pathname.endsWith('/') ? `${pathname}index`: pathname };
+  } catch {
+    return { error: 'Could not make URL.' };
+  }
+}
+
+function propCheck(copy, prop, errorMsg) {
+  if (!copy[prop]) {
+    copy[prop] = errorMsg;
+  } else {
+    delete copy[prop];
+  }
+}
+
+export function getErrors(details) {
+  const required = { name: details.name, variants: details.variants };
+
+  // Name
+  propCheck(required, 'name', 'Experiment name is required.');
+
+  // Variant check (maintain index order)
+  required.variants = required.variants.map((variant) => {
+    if (!variant.url) {
+      variant.error = 'Missing URL';
+      return variant;
+    }
+    const { org } = getOrgSite(variant.url);
+    if (!org) variant.error = 'Use AEM URLs';
+    return variant;
+  });
+
+  // Destry the variant error object if no errors
+  const variantErrors = required.variants.filter((variant) => variant.error).length;
+  if (variantErrors === 0) delete required.variants;
+
+  // Return if no errors
+  if (Object.keys(required).length === 0) return null;
+
+  // Return the errors into the details object
+  return required;
+}
+
+function getRows(details) {
+  const copy = JSON.parse(JSON.stringify(details));
+
+  // Pop the control out of variants
+  copy.variants.shift();
+
+  const rows = [
+    {
+      key: 'experiment',
+      value: copy.name,
+    },
+    {
+      key: 'experiment-variants',
+      value: copy.variants.map((variant) => variant.url).join(', '),
+    },
+    {
+      key: 'experiment-split',
+      value: copy.variants.map((variant) => variant.percent).join(', '),
+    },
+  ];
+  if (copy.type) rows.push({ key: 'experiment-type', value: copy.type });
+  if (copy.goal) rows.push({ key: 'experiment-goal', value: copy.goal });
+  if (copy.startDate) rows.push({ key: 'experiment-start-date', value: copy.startDate });
+  if (copy.endDate) rows.push({ key: 'experiment-end-date', value: copy.endDate });
+  return rows;
+}
+
+function getDom(rows) {
+  return rows.map((row) => {
+    const rowEl = document.createElement('div');
+    const keyEl = document.createElement('div');
+    const valEl = document.createElement('div');
+    rowEl.append(keyEl, valEl);
+    keyEl.textContent = row.key;
+    valEl.textContent = row.value;
+    return rowEl;
+  });
+}
+
+async function getToken() {
+  const ims = await loadIms();
+  if (ims.anonymous) return null;
+  const { token } = ims.accessToken;
+  return token;
+}
+
+async function saveDoc(url, opts, doc) {
+  const body = new FormData();
+
+  const html = doc.body.outerHTML;
+  const data = new Blob([html], { type: 'text/html' });
+  body.append('data', data);
+
+  opts.method = 'POST';
+  opts.body = body;
+
+  const resp = await fetch(url, opts);
+  if (!resp.ok) return { error: 'Error saving to DA.' };
+  return resp.json();
+}
+
+async function getDoc(url, opts) {
+  const resp = await fetch(url, opts);
+  if (!resp.ok) return { error: 'Error getting document.' };
+  const html = await resp.text();
+  return new DOMParser().parseFromString(html, 'text/html');
+}
+
+async function saveMetadata(page, dom) {
+  const { org, repo, path } = getOrgSite(page.url);
+
+  const token = await getToken();
+  if (!token) return { error: 'Please login.' };
+
+  const opts = { headers: { Authorization: `Bearer ${token}` } };
+  const url = `${DA_ORIGIN}/source/${org}/${repo}${path}.html`;
+
+  const doc = await getDoc(url, opts);
+
+  const metaBlock = doc.querySelector('.metadata');
+  const metaRows = metaBlock.querySelectorAll(':scope > div');
+  metaRows.forEach((row) => {
+    // Likely a touch brittle, but fine for now.
+    if (row.children[0].innerHTML.startsWith('<p>experiment')) {
+      row.remove();
+    }
+  });
+  metaBlock.append(...dom);
+  const saved = await saveDoc(url, opts, doc);
+  return saved;
+}
+
+export async function saveDetails(page, details) {
+  const rows = getRows(details);
+  const dom = getDom(rows);
+  const result = await saveMetadata(page, dom);
+  console.log(result);
 }

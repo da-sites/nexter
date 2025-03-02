@@ -6,10 +6,10 @@ const style = await getStyle(import.meta.url);
 
 class SlInput extends LitElement {
   static properties = {
-    name: { type: String },
+    value: { type: String },
+    class: { type: String },
     label: { type: String },
-    type: { type: String },
-    placeholder: { type: String },
+    error: { type: String },
   };
 
   async connectedCallback() {
@@ -17,9 +17,15 @@ class SlInput extends LitElement {
     this.shadowRoot.adoptedStyleSheets = [style];
   }
 
+  handleEvent(event) {
+    this.value = event.target.value;
+    const wcEvent = new event.constructor(event.type, event);
+    this.dispatchEvent(wcEvent);
+  }
+
   get _attrs() {
     return this.getAttributeNames().reduce((acc, name) => {
-      if ((name === 'class' || name === 'label')) return acc;
+      if ((name === 'class' || name === 'label' || name === 'value' || name === 'error')) return acc;
       acc[name] = this.getAttribute(name);
       return acc;
     }, {});
@@ -29,7 +35,13 @@ class SlInput extends LitElement {
     return html`
       <div class="sl-inputfield">
         ${this.label ? html`<label for="sl-input-${this.name}">${this.label}</label>` : nothing}
-        <input class="${this.getAttribute('class')}" ${spread(this._attrs)} />
+        <input
+          .value="${this.value}"
+          @input=${this.handleEvent}
+          @change=${this.handleEvent}
+          class="${this.class} ${this.error ? 'has-error' : ''}"
+          ${spread(this._attrs)} />
+        ${this.error ? html`<p class="sl-inputfield-error">${this.error}</p>` : nothing}
       </div>
     `;
   }
@@ -39,6 +51,7 @@ class SlSelect extends LitElement {
   static properties = {
     name: { type: String },
     label: { type: String },
+    value: { type: String },
     placeholder: { type: String },
   };
 
@@ -48,6 +61,7 @@ class SlSelect extends LitElement {
   }
 
   handleChange(event) {
+    this.value = event.target.value;
     const wcEvent = new event.constructor(event.type, event);
     this.dispatchEvent(wcEvent);
   }
@@ -64,7 +78,7 @@ class SlSelect extends LitElement {
       <div class="sl-inputfield">
         ${this.label ? html`<label for="sl-input-${this.name}">${this.label}</label>` : nothing}
         <div class="sl-inputfield-select-wrapper">
-          <select id="nx-input-exp-opt-for" @change=${this.handleChange}> </select>
+          <select .value=${this.value} id="nx-input-exp-opt-for" @change=${this.handleChange}></select>
         </div>
       </div>
     `;
@@ -86,7 +100,12 @@ class SlButton extends LitElement {
   }
 
   render() {
-    return html`<button class="${this.getAttribute('class')}" ${spread(this._attrs)}><slot></slot></button>`;
+    return html`
+      <button
+        class="${this.getAttribute('class')}"
+        ${spread(this._attrs)}>
+        <slot></slot>
+      </button>`;
   }
 }
 

@@ -35,6 +35,10 @@
       border: none;
       padding: 0;
     }
+
+    &.has-error {
+      border: 2px solid var(--s2-red-900);
+    }
   }
 
   input[type="date"] {
@@ -48,6 +52,7 @@
     width: 100%;
     outline: none;
     background: transparent;
+    margin: 0;
   }
 
   input[type="range"]::after {
@@ -118,6 +123,12 @@
     background: no-repeat center / 18px url("https://da.live/nx/public/icons/Smock_ChevronDown_18_N.svg");
     pointer-events: none;
   }
+
+  .sl-inputfield-error {
+    font-size: var(--s2-body-xs-size);
+    color: var(--s2-red-900);
+    margin: 0;
+  }
 }
 
 button {
@@ -152,4 +163,3 @@ button {
     }
   }
 }
-

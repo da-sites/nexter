@@ -41,9 +41,15 @@
   --s2-gray-200: #e1e1e1;
   --s2-gray-300: #dadada;
   --s2-gray-400: #c6c6c6;
+  --s2-gray-600: #717171;
+  --s2-gray-700: #505050;
   --s2-gray-800: #292929;
+  --s2-green-600: #2fb880;
   --s2-blue-200: #e5f0fe;
   --s2-blue-900: #3b63fb;
+  --s2-red-200: #ffebe8;
+  --s2-red-300: #ffd6d1;
+  --s2-red-900: #d73220;
 }
 
 body {

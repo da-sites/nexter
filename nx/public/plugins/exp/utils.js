@@ -1,13 +1,43 @@
 import { getMetadata } from '../../../scripts/nexter.js';
 
+const MOCK_ORIGIN = 'https://main--da-block-collection--aemsites.aem.page';
+
+export function calcOrigin() {
+  const { origin: ogOrigin } = window.location;
+  return ogOrigin.includes('localhost') ? MOCK_ORIGIN : ogOrigin;
+}
+
+export function calcUrl() {
+  const { pathname } = window.location;
+  const origin = calcOrigin();
+  return `${origin}${pathname}`;
+}
+
 export function getExpDetails() {
   const name = getMetadata('experiment');
 
-  const variants = [{ url: window.location.href }];
+  if (!name) return null;
 
+  // This is the control
+  const variants = [{ url: calcUrl() }];
+
+  // Get the percentages
+  const split = getMetadata('experiment-split')?.split(',');
+
+  // Match percentages to challenger URLs
   const challengers = getMetadata('experiment-variants')?.split(',')
-    .map((path) => ({ url: path.trim() }));
-  if (challengers?.length) variants.push(...challengers);
+    .map((path, idx) => ({ url: path.trim(), percent: Number(split[idx]) })) || [];
+
+  const challPercent = challengers.reduce(
+    (total, variant) => (variant.percent ? total + variant.percent : total),
+    0,
+  );
+
+  // Update the control with the percentage left over
+  variants[0].percent = 100 - challPercent;
+
+  if (challengers.length > 0) variants.push(...challengers);
+
   return { name, variants };
 }
 
