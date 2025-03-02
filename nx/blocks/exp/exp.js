@@ -10,7 +10,7 @@ import {
   toColor,
   getErrors,
   saveDetails,
-} from './utils/utils.js';
+} from './utils.js';
 
 import '../../public/sl/components.js';
 import '../profile/profile.js';
@@ -31,6 +31,7 @@ class NxExp extends LitElement {
     _page: { state: true },
     _details: { state: true },
     _errors: { state: true },
+    _status: { state: true },
   };
 
   async connectedCallback() {
@@ -57,6 +58,15 @@ class NxExp extends LitElement {
 
   handleProfileLoad() {
     this._ims = true;
+  }
+
+  setStatus(text, type) {
+    if (!text) {
+      this._status = null;
+    } else {
+      this._status = { text, type };
+    }
+    this.requestUpdate();
   }
 
   async handleNewExp() {
@@ -117,8 +127,14 @@ class NxExp extends LitElement {
   handlePublish(e) {
     e.preventDefault();
     this._errors = getErrors(this._details);
-    if (this._errors) return;
-    saveDetails(this._page, this._details);
+    if (this._errors) {
+      this.setStatus('Please fix errors.', 'error');
+      return;
+    }
+
+    // Bind to this so it can be called outside the class
+    const setStatus = this.setStatus.bind(this);
+    saveDetails(this._page, this._details, setStatus);
   }
 
   get _placeholder() {
@@ -248,9 +264,12 @@ class NxExp extends LitElement {
 
   renderActions() {
     return html`
-      <div class="nx-action-area nx-action-area-right">
-        <sl-button class="primary outline">Save as draft</sl-button>
-        <sl-button @click=${this.handlePublish}>Publish</sl-button>
+      <div class="nx-action-area">
+        <p class="nx-status nx-status-type-${this._status?.type || 'info'}">${this._status?.text}</p>
+        <div>
+          <sl-button class="primary outline">Save as draft</sl-button>
+          <sl-button @click=${this.handlePublish}>Publish</sl-button>
+        </div>
       </div>
     `;
   }
@@ -281,7 +300,6 @@ class NxExp extends LitElement {
               name="exp-type"
               .value=${this._details.type}
               @change=${(e) => this.handleSelectChange(e, 'type')}>
-                <option value="">Pick type</option>
                 <option value="ab">A/B test</option>
                 <option value="mab">Multi-arm bandit</option>
             </sl-select>
@@ -290,10 +308,9 @@ class NxExp extends LitElement {
               name="exp-opt-for"
               .value=${this._details.goal}
               @change=${(e) => this.handleSelectChange(e, 'goal')}>
-                <option value="">Choose goal</option>
-                <option>Overall conversion</option>
-                <option>Form submission</option>
-                <option>Engagement</option>
+                <option value="conversion">Overall conversion</option>
+                <option value="form-submit">Form submission</option>
+                <option value="engagement">Engagement</option>
             </sl-select>
           </div>
         </div>

@@ -54,3 +54,6 @@ export default async function runExp() {
   makeDraggable(palette);
   document.body.append(palette);
 }
+
+// Side-effect to run on first import
+runExp();

@@ -1,5 +1,5 @@
-import { DA_ORIGIN } from '../../../public/utils/constants.js';
-import { loadIms } from '../../../utils/ims.js';
+import { DA_ORIGIN } from '../../public/utils/constants.js';
+import { loadIms } from '../../utils/ims.js';
 
 export function getDefaultData(page) {
   return {
@@ -63,7 +63,7 @@ export function getOrgSite(url) {
     const { hostname, pathname } = new URL(url);
     const [repo, org] = hostname.split('.')[0].split('--').slice(1).slice(-2);
     if (!(repo || org)) return { error: 'Please use AEM URLs' };
-    return { repo, org, path: pathname.endsWith('/') ? `${pathname}index`: pathname };
+    return { repo, org, path: pathname.endsWith('/') ? `${pathname}index` : pathname };
   } catch {
     return { error: 'Could not make URL.' };
   }
@@ -90,7 +90,10 @@ export function getErrors(details) {
       return variant;
     }
     const { org } = getOrgSite(variant.url);
-    if (!org) variant.error = 'Use AEM URLs';
+    if (!org) {
+      variant.error = 'Use AEM URLs';
+    }
+    delete variant.error;
     return variant;
   });
 
@@ -168,8 +171,7 @@ async function saveDoc(url, opts, doc) {
 
 async function getDoc(url, opts) {
   const resp = await fetch(url, opts);
-  if (!resp.ok) return { error: 'Error getting document.' };
-  const html = await resp.text();
+  const html = !resp.ok ? '<body><header></header><main><div></div></main><footer></footer></body>' : await resp.text();
   return new DOMParser().parseFromString(html, 'text/html');
 }
 
@@ -184,7 +186,13 @@ async function saveMetadata(page, dom) {
 
   const doc = await getDoc(url, opts);
 
-  const metaBlock = doc.querySelector('.metadata');
+  let metaBlock = doc.querySelector('.metadata');
+  if (!metaBlock) {
+    metaBlock = document.createElement('div');
+    metaBlock.className = 'metadata';
+    doc.body.querySelector('main div').append(metaBlock);
+  }
+
   const metaRows = metaBlock.querySelectorAll(':scope > div');
   metaRows.forEach((row) => {
     // Likely a touch brittle, but fine for now.
@@ -197,9 +205,15 @@ async function saveMetadata(page, dom) {
   return saved;
 }
 
-export async function saveDetails(page, details) {
+export async function saveDetails(page, details, setStatus) {
   const rows = getRows(details);
+  setStatus('Getting document');
   const dom = getDom(rows);
+  setStatus('Updating document with experiment');
   const result = await saveMetadata(page, dom);
-  console.log(result);
+  if (result.error) {
+    setStatus(result.error, 'error');
+    return;
+  }
+  setStatus();
 }
