@@ -124,7 +124,7 @@ class NxExp extends LitElement {
     this._details[name] = e.target.value;
   }
 
-  handlePublish(e) {
+  async handlePublish(e) {
     e.preventDefault();
     this._errors = getErrors(this._details);
     if (this._errors) {
@@ -134,7 +134,9 @@ class NxExp extends LitElement {
 
     // Bind to this so it can be called outside the class
     const setStatus = this.setStatus.bind(this);
-    saveDetails(this._page, this._details, setStatus);
+    const result = await saveDetails(this._page, this._details, setStatus);
+    if (result.status !== 'ok') return;
+    this.port.postMessage({ reload: true });
   }
 
   get _placeholder() {

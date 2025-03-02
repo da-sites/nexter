@@ -332,7 +332,7 @@ nx-profile {
 
   .nx-status {
     font-weight: 700;
-    font-size: var(--s2-body-xs-size);
+    font-size: var(--s2-body-xxs-size);
     line-height: 1;
 
     &.nx-status-type-error {

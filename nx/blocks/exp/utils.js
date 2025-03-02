@@ -1,4 +1,4 @@
-import { DA_ORIGIN } from '../../public/utils/constants.js';
+import { DA_ORIGIN, AEM_ORIGIN } from '../../public/utils/constants.js';
 import { loadIms } from '../../utils/ims.js';
 
 export function getDefaultData(page) {
@@ -46,7 +46,10 @@ export function getAbb(name) {
 
 function getName(variant, idx) {
   if (idx === 0) return 'control';
-  if (variant.url) return variant.url.split('/').pop();
+  if (variant.url) {
+    const url = variant.url.endsWith('/') ? `${variant.url}index` : variant.url;
+    return url.split('/').pop();
+  }
   return `variant-${idx}`;
 }
 
@@ -154,6 +157,16 @@ async function getToken() {
   return token;
 }
 
+async function aemReq(type, page) {
+  const { org, repo, path } = getOrgSite(page.url);
+  const token = await getToken();
+  const opts = { method: 'POST', headers: { Authorization: `Bearer ${token}` } };
+  const url = `${AEM_ORIGIN}/${type}/${org}/${repo}/main${path}`;
+  const resp = await fetch(url, opts);
+  if (!resp.ok) return { error: 'Error previewing doc.' };
+  return resp.json();
+}
+
 async function saveDoc(url, opts, doc) {
   const body = new FormData();
 
@@ -196,7 +209,8 @@ async function saveMetadata(page, dom) {
   const metaRows = metaBlock.querySelectorAll(':scope > div');
   metaRows.forEach((row) => {
     // Likely a touch brittle, but fine for now.
-    if (row.children[0].innerHTML.startsWith('<p>experiment')) {
+    const text = row.children[0].textContent;
+    if (text.startsWith('experiment')) {
       row.remove();
     }
   });
@@ -207,13 +221,29 @@ async function saveMetadata(page, dom) {
 
 export async function saveDetails(page, details, setStatus) {
   const rows = getRows(details);
-  setStatus('Getting document');
+  setStatus('Getting document.');
   const dom = getDom(rows);
-  setStatus('Updating document with experiment');
+
+  setStatus('Updating document with experiment.');
   const result = await saveMetadata(page, dom);
   if (result.error) {
     setStatus(result.error, 'error');
-    return;
+    return null;
+  }
+
+  setStatus('Previewing document.');
+  const preview = await aemReq('preview', page);
+  if (preview.error) {
+    setStatus(preview.error, 'error');
+    return null;
+  }
+
+  setStatus('Publishing document.');
+  const live = await aemReq('live', page);
+  if (live.error) {
+    setStatus(live.error, 'error');
+    return null;
   }
   setStatus();
+  return { status: 'ok' };
 }

@@ -16,7 +16,15 @@ async function init() {
 }
 
 function handleLoad({ target }) {
-  port1.onmessage = (e) => { if (e.data.ready) init(target); };
+  port1.onmessage = (e) => {
+    if (e.data.ready) init(target);
+    if (e.data.reload) {
+      const { origin, pathname, searchParams, hash } = new URL(window.location.href);
+      searchParams.set('daexperiment', Date.now());
+      console.log(searchParams);
+      window.location = `${origin}${pathname}?${searchParams.toString()}${hash}`;
+    }
+  };
 
   setTimeout(() => {
     target.contentWindow.postMessage({ ready: true }, '*', [port2]);
