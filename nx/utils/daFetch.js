@@ -23,6 +23,7 @@ export const daFetch = async (url, opts = {}) => {
     const { accessToken } = await initIms();
     if (accessToken) {
       opts.headers.Authorization = `Bearer ${accessToken.token}`;
+      opts.headers['x-content-source-authorization'] = `Bearer ${accessToken.token}`;
     }
   }
   const resp = await fetch(url, opts);
