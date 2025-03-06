@@ -52,6 +52,7 @@ class SlSelect extends LitElement {
     name: { type: String },
     label: { type: String },
     value: { type: String },
+    disabled: { type: Boolean },
     placeholder: { type: String },
   };
 
@@ -80,7 +81,7 @@ class SlSelect extends LitElement {
       <div class="sl-inputfield">
         ${this.label ? html`<label for="sl-input-${this.name}">${this.label}</label>` : nothing}
         <div class="sl-inputfield-select-wrapper">
-          <select .value=${this.value} id="nx-input-exp-opt-for" @change=${this.handleChange}></select>
+          <select .value=${this.value} id="nx-input-exp-opt-for" @change=${this.handleChange} ?disabled="${this.disabled}"></select>
         </div>
       </div>
     `;
@@ -111,6 +112,50 @@ class SlButton extends LitElement {
   }
 }
 
+class SlDialog extends LitElement {
+  async connectedCallback() {
+    super.connectedCallback();
+    this.shadowRoot.adoptedStyleSheets = [style];
+  }
+
+  static properties = { open: { type: Boolean }, modal: { type: Boolean } };
+
+  showModal() {
+    this.shadowRoot.querySelector('dialog').showModal();
+  }
+
+  show() {
+    this.shadowRoot.querySelector('dialog').show();
+  }
+
+  close() {
+    this.shadowRoot.querySelector('dialog').close();
+  }
+
+  updated(props) {
+    if (props.has('open')) {
+      if (this.open) {
+        if (this.modal) {
+          this.showModal();
+        } else {
+          this.show();
+        }
+      } else {
+        this.close();
+      }
+    }
+  }
+
+  render() {
+    return html`
+      <dialog class="sl-dialog">
+        <slot></slot>
+      </dialog>
+    `;
+  }
+}
+
 customElements.define('sl-input', SlInput);
 customElements.define('sl-select', SlSelect);
 customElements.define('sl-button', SlButton);
+customElements.define('sl-dialog', SlDialog);
