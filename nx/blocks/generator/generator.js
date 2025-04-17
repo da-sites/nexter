@@ -5,7 +5,7 @@ import { createSite } from './create-site.js';
 
 const style = await getStyle(import.meta.url);
 // const placeholders = [];
-const blueprints = [{ label: 'Blueprint', value: '/adobe-commerce/template' }];
+const blueprints = [{ label: 'Blueprint', value: '/adobe-commerce/commerce-boilerplate' }];
 
 // const onOpenPlaceholder = (item) => {
 //   const url = `https://da.live/sheet#${item.value}`;
