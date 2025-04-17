@@ -1,7 +1,7 @@
 import { crawl } from 'https://da.live/nx/public/utils/tree.js';
 import { loadIms } from '../../utils/ims.js';
 
-const { token } = await loadIms();
+const { accessToken: { token } } = await loadIms();
 
 const PLACEHOLDERS_DIR = 'TODO/da-sws/configs/';
 
