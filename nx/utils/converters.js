@@ -55,49 +55,6 @@ function convertBlocks(editor) {
   });
 }
 
-function makePictures(dom) {
-  const imgs = dom.querySelectorAll('img');
-  imgs.forEach((img) => {
-    const clone = img.cloneNode(true);
-    clone.setAttribute('loading', 'lazy');
-    // MD can have hlx in the img src
-    clone.src = clone.src.replace('.hlx.', '.aem.');
-    // clone.src = `${clone.src}?optimize=medium`;
-
-    let pic = document.createElement('picture');
-
-    const srcMobile = document.createElement('source');
-    srcMobile.srcset = clone.src;
-
-    const srcTablet = document.createElement('source');
-    srcTablet.srcset = clone.src;
-    srcTablet.media = '(min-width: 600px)';
-
-    pic.append(srcMobile, srcTablet, clone);
-
-    const hrefAttr = img.getAttribute('href');
-    if (hrefAttr) {
-      const a = document.createElement('a');
-      a.href = hrefAttr;
-      const titleAttr = img.getAttribute('title');
-      if (titleAttr) {
-        a.title = titleAttr;
-      }
-      a.append(pic);
-      pic = a;
-    }
-
-    // Determine what to replace
-    const imgParent = img.parentElement;
-    const imgGrandparent = imgParent.parentElement;
-    if (imgParent.nodeName === 'P' && imgGrandparent?.childElementCount === 1) {
-      imgGrandparent.replaceChild(pic, imgParent);
-    } else {
-      imgParent.replaceChild(pic, img);
-    }
-  });
-}
-
 function makeSections(editor) {
   const children = editor.body.querySelectorAll(':scope > *');
 
@@ -118,9 +75,7 @@ function makeSections(editor) {
 // Generic docs have table blocks and HRs, but not ProseMirror decorations
 export function docDomToAemHtml(dom) {
   convertBlocks(dom);
-  makePictures(dom);
   makeSections(dom);
-
   return dom.body.innerHTML;
 }
 
