@@ -57,7 +57,21 @@ function convertBlocks(editor) {
 
 function makePictures(dom) {
   const imgs = dom.querySelectorAll('img');
-  imgs.forEach((img) => {
+  imgs.forEach((originalImage) => {
+    const parent = originalImage.parentElement;
+    const grandParent = parent.parentElement;
+
+    // Wrap the picture tags in a p tag if there are multiple children
+    // Prevents https://github.com/adobe/helix-html2md/issues/747
+    let paragraph = originalImage.parentElement;
+    if (parent.nodeName === 'DIV' && parent.childElementCount > 1) {
+      const div = document.createElement('div');
+      paragraph = document.createElement('p');
+      paragraph.innerHTML = parent.innerHTML;
+      div.appendChild(paragraph);
+      grandParent.replaceChild(div, parent);
+    }
+    const img = paragraph.querySelector('img') || originalImage;
     const clone = img.cloneNode(true);
     clone.setAttribute('loading', 'lazy');
     // MD can have hlx in the img src
@@ -89,12 +103,7 @@ function makePictures(dom) {
 
     // Determine what to replace
     const imgParent = img.parentElement;
-    const imgGrandparent = imgParent.parentElement;
-    if (imgParent.nodeName === 'P' && imgGrandparent?.childElementCount === 1) {
-      imgGrandparent.replaceChild(pic, imgParent);
-    } else {
-      imgParent.replaceChild(pic, img);
-    }
+    imgParent.replaceChild(pic, img);
   });
 }
 
