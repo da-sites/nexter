@@ -1,0 +1,22 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Run Web Test Runner",
+            "type": "shell",
+            "command": "npx wtr --config ./web-test-runner.config.mjs --node-resolve ${input:filename}",
+            "problemMatcher": [],
+            "group": {
+                "kind": "test",
+                "isDefault": true
+            }
+        }
+    ],
+    "inputs": [
+        {
+            "id": "filename",
+            "type": "promptString",
+            "description": "Enter the test file path"
+        }
+    ]
+}

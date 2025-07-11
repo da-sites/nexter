@@ -283,10 +283,15 @@ function buildHtmlFromDiff(diff, modified) {
 }
 
 export const removeLocTags = (html) => {
-  const locElsToRemove = html.querySelectorAll('da-loc-deleted, [loc-temp-dom]');
+  const isRegionalLocInherit = html.querySelector('body').hasAttribute('da-loc-inherit');
+  if (isRegionalLocInherit) {
+    html.querySelector('body').removeAttribute('da-loc-inherit');
+  }
+
+  const locElsToRemove = html.querySelectorAll(`${DELETED_TAG}, [loc-temp-dom]`);
   locElsToRemove.forEach((el) => el.remove());
 
-  const tags = html.querySelectorAll('da-loc-added');
+  const tags = html.querySelectorAll(ADDED_TAG);
 
   // Iterate over each tag
   tags.forEach((tag) => {
@@ -295,6 +300,8 @@ export const removeLocTags = (html) => {
     }
     tag.parentNode.removeChild(tag);
   });
+
+  return isRegionalLocInherit;
 };
 
 export async function regionalDiff(original, modified) {

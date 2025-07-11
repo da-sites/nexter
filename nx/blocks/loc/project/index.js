@@ -111,13 +111,23 @@ async function saveVersion(path, label) {
   return res;
 }
 
-export async function overwriteCopy(url, title) {
+export async function overwriteCopy(url, title, { daLocInherit = false } = {}) {
   const srcResp = await daFetch(`${DA_ORIGIN}/source${url.source}`);
   if (!srcResp.ok) {
     url.status = 'error';
     return srcResp;
   }
-  const blob = await srcResp.blob();
+
+  let blob;
+  if (daLocInherit) {
+    const html = await srcResp.text();
+    const dom = PARSER.parseFromString(html, 'text/html');
+    dom.querySelector('body').setAttribute('da-loc-inherit', '');
+    blob = new Blob([dom.documentElement.outerHTML], { type: 'text/html' });
+  } else {
+    blob = await srcResp.blob();
+  }
+
   const body = new FormData();
   body.append('data', blob);
   const opts = { method: 'POST', body };
@@ -158,12 +168,17 @@ export async function rolloutCopy(url, projectTitle) {
       throw new Error('No langstore content or error fetching');
     }
 
-    removeLocTags(regionalCopy);
+    const isRegionalLocInherit = removeLocTags(regionalCopy);
 
     if (langstoreCopy.querySelector('main').outerHTML === regionalCopy.querySelector('main').outerHTML) {
       // No differences, don't need to do anything
       url.status = 'success';
       return Promise.resolve();
+    }
+
+    if (isRegionalLocInherit) {
+      // Regional file different, but inherit is set for the entire regional file, so we overwrite
+      throw new Error('Regional file has da-loc-inherit set');
     }
 
     // There are differences, upload the annotated loc file
@@ -192,28 +207,28 @@ export async function rolloutCopy(url, projectTitle) {
       });
     });
   } catch (e) {
-    return overwriteCopy(url, projectTitle);
+    return overwriteCopy(url, projectTitle, { daLocInherit: true });
   }
 }
 
 export async function mergeCopy(url, projectTitle) {
   try {
-    const regionalCopy = await getHtml(url.destination);
-    if (!regionalCopy) throw new Error('No regional content or error fetching');
+    const regional = await getHtml(url.destination);
+    if (!regional) throw new Error('No regional content or error fetching');
 
-    const langstoreCopy = await getHtml(url.source);
-    if (!langstoreCopy) throw new Error('No langstore content or error fetching');
+    const langstore = await getHtml(url.source);
+    if (!langstore) throw new Error('No langstore content or error fetching');
 
-    removeLocTags(regionalCopy);
+    removeLocTags(regional);
 
-    if (langstoreCopy.querySelector('main').outerHTML === regionalCopy.querySelector('main').outerHTML) {
+    if (langstore.querySelector('main').outerHTML === regional.querySelector('main').outerHTML) {
       // No differences, don't need to do anything
       url.status = 'success';
       return { ok: true };
     }
 
     // There are differences, upload the annotated loc file
-    const diffedMain = await regionalDiff(langstoreCopy, regionalCopy);
+    const diffedMain = await regionalDiff(langstore, regional);
 
     const daUrl = getDaUrl(url);
     const { daResp } = await saveToDa(diffedMain.innerHTML, daUrl);

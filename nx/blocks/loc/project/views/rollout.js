@@ -58,7 +58,7 @@ class NxLocRollout extends LitElement {
         return async () => {
           let resp;
           if (this.conflictBehavior === 'overwrite') {
-            resp = await overwriteCopy({ source, destination }, this.title);
+            resp = await overwriteCopy({ source, destination }, this.title, { daLocInherit: true });
           } else {
             resp = await mergeCopy({ source, destination }, this.title);
           }
