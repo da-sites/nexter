@@ -219,3 +219,13 @@ select {
 .is-expanded .toggle-list-icon svg {
   transform: rotate(90deg);
 }
+
+.error {
+  align-content: center;
+  padding: 10px;
+  background: var(--s2-red);
+  border-radius: var(--s2-radius-100);
+  font-weight: 700;
+  color: #fff;
+  font-size: 14px;
+}

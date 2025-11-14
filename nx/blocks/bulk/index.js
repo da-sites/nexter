@@ -51,3 +51,50 @@ export async function sendAction(url, label) {
   }
   return url;
 }
+
+export async function triggerJob(urls) {
+  try {
+    const opts = { method: 'POST', headers: { 'Content-Type': 'application/json; charset=utf-8' } };
+    const origin = AEM_ORIGIN;
+
+    const deleteJob = !!urls[0].hasDelete;
+    opts.body = JSON.stringify({ paths: urls.map((url) => url.pathname), delete: deleteJob });
+
+    const aemUrl = `${origin}/${urls[0].action}/${urls[0].org}/${urls[0].repo}/${urls[0].ref}/*`;
+    const resp = await daFetch(aemUrl, opts);
+
+    if (resp.status !== 202) {
+      return { error: resp.status, message: 'Job failed to trigger.' };
+    }
+    return resp.json();
+  } catch (error) {
+    return { error, message: 'Job failed to trigger.' };
+  }
+}
+
+export async function cancelJob(jobUrl) {
+  try {
+    const opts = { method: 'DELETE' };
+    const job = await daFetch(jobUrl, opts);
+    const result = await job.json();
+    return result;
+  } catch (error) {
+    return error;
+  }
+}
+
+export async function getJobStatus(jobUrl, force = false) {
+  if (!force) {
+    await new Promise((resolve) => {
+      setTimeout(() => resolve(), 1000);
+    });
+  }
+  try {
+    const opts = { method: 'GET' };
+    const status = await daFetch(jobUrl, opts);
+    const result = await status.json();
+    return result;
+  } catch (error) {
+    return error;
+  }
+}
